@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AccountStatus {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  title      String // active, suspended, deactivated, reactivated
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt()
+  users      User[]
+
+  @@index([id])
+  @@map("tbl_account_status")
+}
+
+model Status {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  title      String // ACTIVE, INACTIVE
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt()
+
+  @@index([id])
+  @@map("tbl_status")
+}
+
+model Role {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  title      String // ADMIN  EDITOR  STUDENT
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt()
+  users      User[]
+
+  @@index([id])
+  @@map("tbl_roles")
+}
+
+model User {
+  id                BigInt         @id @default(autoincrement()) @db.BigInt
+  first_name        String?
+  last_name         String?
+  email             String         @unique
+  phone_no          String?
+  password          String?
+  image             String?
+  provider          AuthType
+  provider_id       String?
+  fcm_token         String?
+  reset_token       String?        @unique
+  reset_token_exp   DateTime?
+  is_temporary      Boolean        @default(false)
+  is_deleted        Boolean        @default(false)
+  role_id           BigInt
+  role              Role           @relation(fields: [role_id], references: [id])
+  account_status_id BigInt         @default(1)
+  account_status    AccountStatus  @relation(fields: [account_status_id], references: [id])
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt()
+  userFCMToken      UserFCMToken[]
+  userToken         UserToken[]
+
+  @@index([first_name, last_name, email, phone_no, role_id, account_status_id])
+  @@map("tbl_users")
+}
+
+model UserToken {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  token      String   @unique
+  user_id    BigInt
+  user       User     @relation(fields: [user_id], references: [id])
+  user_agent String?
+  ip_address String?
+  is_revoked Boolean  @default(false)
+  created_at DateTime @default(now())
+  expires_at DateTime
+
+  @@index([id])
+  @@map("tbl_user_tokens")
+}
+
+model OTP {
+  id             BigInt    @id @default(autoincrement()) @db.BigInt
+  credential     String?
+  OTP            Int
+  limit          Int       @default(0)
+  restrictedTime DateTime?
+  created_at     DateTime  @default(now())
+  expire_at      DateTime  @default(now())
+  updated_at     DateTime  @updatedAt()
+
+  @@index([id, credential, OTP])
+  @@map("tbl_otp")
+}
+
+model UserFCMToken {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  user_id    BigInt
+  user       User     @relation(fields: [user_id], references: [id])
+  token      String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("tbl_user_fcm_tokens")
+}
+
+model AdminSettings {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  title      String?
+  metadata   Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt()
+
+  @@map("tbl_admin_settings")
+}
+
+model adminActivityLog {
+  id          BigInt   @id @default(autoincrement()) @db.BigInt
+  description String   @db.Text()
+  table       String?
+  action      String
+  ip          String?
+  userAgent   String?
+  created_at  DateTime @default(now())
+
+  @@index([id])
+  @@map("tbl_admin_activity_log")
+}
+
+enum AuthType {
+  GOOGLE
+  APPLE
+  EMAIL
+}
