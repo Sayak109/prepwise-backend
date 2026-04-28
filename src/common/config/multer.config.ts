@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as multer from 'multer';
 import * as sharp from 'sharp';
 import { BadRequestException } from '@nestjs/common';
-import { ApiResponse } from '../dto/response.dto';
 
 
 const storage = multer.diskStorage({
@@ -25,6 +24,7 @@ const storage = multer.diskStorage({
             ext = '.' + file.mimetype.split('/')[1];
         }
         const filename = `${uuidv4()}-${Date.now()}${ext}`
+
         cb(null, filename);
     }
 });
@@ -46,18 +46,37 @@ function checkFileType(file: any, cb: multer.FileFilterCallback) {
         if (isImage || isVideo) {
             return cb(null, true);
         } else {
-            return cb(new BadRequestException("Only JPEG, JPG, PNG, WEBP, HEIC images and MP4, MOV, AVI, MKV videos are allowed!"));
+            return cb(new BadRequestException('Invalid file type'));
         }
     } catch (error) {
-        console.error("error:", error)
+        console.error("error", error)
     }
 }
 
-const upload = multer({
-    storage: storage,
-    fileFilter: function (req, file, cb) {
-        checkFileType(file, cb);
+async function isValidImageBuffer(buffer: Buffer): Promise<boolean> {
+    try {
+        const metadata = await sharp(buffer).metadata();
+        return Boolean(metadata.format);
+    } catch {
+        return false;
     }
+}
+
+// const upload = multer({
+//     storage: storage,
+//     fileFilter: function (req, file, cb) {
+//         checkFileType(file, cb);
+//     }
+// });
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        checkFileType(file, cb);
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+    },
 });
 
-export { storage, upload, checkFileType }
+export { storage, upload, checkFileType, isValidImageBuffer }

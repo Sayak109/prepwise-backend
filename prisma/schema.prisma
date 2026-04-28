@@ -1,13 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider        = "prisma-client-js"
-  output          = "../generated/prisma"
-  previewFeatures = ["fullTextSearchPostgres"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -15,131 +7,403 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model AccountStatus {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  title      String // active, suspended, deactivated, reactivated
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt()
-  users      User[]
-
-  @@index([id])
-  @@map("tbl_account_status")
-}
-
-model Status {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  title      String // ACTIVE, INACTIVE
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt()
-
-  @@index([id])
-  @@map("tbl_status")
-}
-
-model Role {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  title      String // ADMIN  EDITOR  STUDENT
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt()
-  users      User[]
-
-  @@index([id])
-  @@map("tbl_roles")
-}
-
 model User {
-  id                BigInt         @id @default(autoincrement()) @db.BigInt
-  first_name        String?
-  last_name         String?
-  email             String         @unique
-  phone_no          String?
-  password          String?
-  image             String?
-  provider          AuthType
-  provider_id       String?
-  fcm_token         String?
-  reset_token       String?        @unique
-  reset_token_exp   DateTime?
-  is_temporary      Boolean        @default(false)
-  is_deleted        Boolean        @default(false)
-  role_id           BigInt
-  role              Role           @relation(fields: [role_id], references: [id])
-  account_status_id BigInt         @default(1)
-  account_status    AccountStatus  @relation(fields: [account_status_id], references: [id])
-  created_at        DateTime       @default(now())
-  updated_at        DateTime       @updatedAt()
-  userFCMToken      UserFCMToken[]
-  userToken         UserToken[]
+  id            String     @id @default(uuid()) @db.Uuid
+  email         String?    @unique @db.VarChar(255)
+  phoneNo       String?    @unique @map("phone_no") @db.VarChar(30)
+  passwordHash  String     @map("password_hash")
+  firstName     String?    @map("first_name") @db.VarChar(100)
+  lastName      String?    @map("last_name") @db.VarChar(100)
+  authMethod    AuthMethod @default(EMAIL_PW) @map("auth_method")
+  providerId    String?    @map("provider_id")
+  role          UserRole   @default(STUDENT)
+  status        Status     @default(ACTIVE)
+  resetToken    String?    @map("reset_token")
+  resetTokenExp DateTime?  @map("reset_token_exp")
+  lastLoginAt   DateTime?  @map("last_login_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
 
-  @@index([first_name, last_name, email, phone_no, role_id, account_status_id])
-  @@map("tbl_users")
+  editorTopicPermissions EditorTopicPermission[] @relation("EditorTopicPermissions")
+  permissionsAssigned    EditorTopicPermission[] @relation("PermissionsAssignedBy")
+  createdQuestions       Question[]              @relation("QuestionsCreatedBy")
+  updatedQuestions       Question[]              @relation("QuestionsUpdatedBy")
+  createdTests           Test[]                  @relation("TestsCreatedBy")
+  testAttempts           TestAttempt[]
+  answers                Answer[]
+  progress               UserProgress[]
+  bookmarks              Bookmark[]
+  userSessions           UserSession[]
+  invalidatedTokens      InvalidatedToken[]
+  fcmTokens              UserFCMToken[]
+
+  @@index([role])
+  @@index([authMethod])
+  @@map("users")
 }
 
-model UserToken {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  token      String   @unique
-  user_id    BigInt
-  user       User     @relation(fields: [user_id], references: [id])
-  user_agent String?
-  ip_address String?
-  is_revoked Boolean  @default(false)
-  created_at DateTime @default(now())
-  expires_at DateTime
+model AuthRateLimit {
+  id            String    @id @default(uuid()) @db.Uuid
+  identifier    String    @db.VarChar(255)
+  ipAddress     String    @map("ip_address") @db.VarChar(45)
+  attempts      Int       @default(0)
+  penaltyLevel  Int       @default(0) @map("penalty_level")
+  blockedUntil  DateTime? @map("blocked_until")
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  @@index([id])
-  @@map("tbl_user_tokens")
+  @@unique([identifier, ipAddress])
+  @@index([blockedUntil])
+  @@map("auth_rate_limits")
+}
+
+model UserSession {
+  id                    String    @id @default(uuid()) @db.Uuid
+  sessionId             String    @unique @default(uuid()) @map("session_id") @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  deviceInfo            Json?     @map("device_info")
+  ipAddress             String?   @map("ip_address") @db.VarChar(45)
+  userAgent             String?   @map("user_agent") @db.Text
+  refreshTokenHash      String    @unique @map("refresh_token_hash")
+  refreshTokenEncrypted String?   @map("refresh_token_encrypted") @db.Text
+  expiresAt             DateTime  @map("expires_at")
+  lastUsedAt            DateTime? @map("last_used_at")
+  revokedAt             DateTime? @map("revoked_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId, userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("user_sessions")
+}
+
+model InvalidatedToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  reason    String?  @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("invalidated_tokens")
+}
+
+model UserFCMToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  token      String    @unique @db.Text
+  deviceId   String?   @map("device_id") @db.VarChar(255)
+  platform   Platform
+  isActive   Boolean   @default(true) @map("is_active")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([platform])
+  @@index([isActive])
+  @@map("user_fcm_tokens")
 }
 
 model OTP {
-  id             BigInt    @id @default(autoincrement()) @db.BigInt
+  id             String    @id @default(uuid()) @db.Uuid
   credential     String?
   OTP            Int
   limit          Int       @default(0)
   restrictedTime DateTime?
   created_at     DateTime  @default(now())
   expire_at      DateTime  @default(now())
-  updated_at     DateTime  @updatedAt()
+  updated_at     DateTime  @updatedAt
 
   @@index([id, credential, OTP])
-  @@map("tbl_otp")
+  @@map("otp")
 }
 
-model UserFCMToken {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  user_id    BigInt
-  user       User     @relation(fields: [user_id], references: [id])
-  token      String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@map("tbl_user_fcm_tokens")
-}
-
-model AdminSettings {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  title      String?
-  metadata   Json
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt()
-
-  @@map("tbl_admin_settings")
-}
-
-model adminActivityLog {
-  id          BigInt   @id @default(autoincrement()) @db.BigInt
+model AdminActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
   description String   @db.Text()
   table       String?
   action      String
-  ip          String?
-  userAgent   String?
-  created_at  DateTime @default(now())
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@index([id])
+  @@index([id, table, description, action])
   @@map("tbl_admin_activity_log")
 }
 
-enum AuthType {
+model AdminSettings {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  metadata  Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([title])
+  @@map("tbl_admin_settings")
+}
+
+model Topic {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(150)
+  slug        String   @unique @db.VarChar(180)
+  description String?  @db.Text
+  parentId    String?  @map("parent_id") @db.Uuid
+  isPremium   Boolean  @default(false) @map("is_premium")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent      Topic?                  @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Topic[]                 @relation("TopicHierarchy")
+  permissions EditorTopicPermission[]
+  questions   Question[]
+  tests       Test[]
+  progress    UserProgress[]
+
+  @@index([parentId])
+  @@index([isPremium])
+  @@map("topics")
+}
+
+model EditorTopicPermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  editorId     String   @map("editor_id") @db.Uuid
+  topicId      String   @map("topic_id") @db.Uuid
+  assignedById String?  @map("assigned_by_id") @db.Uuid
+  canCreate    Boolean  @default(true) @map("can_create")
+  canUpdate    Boolean  @default(true) @map("can_update")
+  canDelete    Boolean  @default(true) @map("can_delete")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  editor     User  @relation("EditorTopicPermissions", fields: [editorId], references: [id], onDelete: Cascade)
+  topic      Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  assignedBy User? @relation("PermissionsAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@unique([editorId, topicId])
+  @@index([topicId])
+  @@map("editor_topic_permissions")
+}
+
+model Question {
+  id                   String       @id @default(uuid()) @db.Uuid
+  topicId              String       @map("topic_id") @db.Uuid
+  createdById          String?      @map("created_by_id") @db.Uuid
+  updatedById          String?      @map("updated_by_id") @db.Uuid
+  type                 QuestionType
+  questionText         String       @map("question_text") @db.Text
+  difficulty           Difficulty
+  explanation          String?      @db.Text
+  correctOptionId      String?      @unique @map("correct_option_id") @db.Uuid
+  correctAnswer        String?      @map("correct_answer") @db.Text
+  caseInsensitiveMatch Boolean?     @map("case_insensitive_match")
+  numericTolerance     Decimal?     @map("numeric_tolerance") @db.Decimal(12, 4)
+  sampleAnswer         String?      @map("sample_answer") @db.Text
+  isPremium            Boolean      @default(false) @map("is_premium")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  topic         Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdBy     User?          @relation("QuestionsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?          @relation("QuestionsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  correctOption McqOption?     @relation("QuestionCorrectOption", fields: [correctOptionId], references: [id], onDelete: SetNull)
+  options       McqOption[]    @relation("QuestionMcqOptions")
+  testQuestions TestQuestion[]
+  answers       Answer[]
+  bookmarks     Bookmark[]
+
+  @@index([topicId])
+  @@index([type])
+  @@index([difficulty])
+  @@index([isPremium])
+  @@map("questions")
+}
+
+model McqOption {
+  id           String   @id @default(uuid()) @db.Uuid
+  questionId   String   @map("question_id") @db.Uuid
+  optionText   String   @map("option_text") @db.Text
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  question           Question  @relation("QuestionMcqOptions", fields: [questionId], references: [id], onDelete: Cascade)
+  correctForQuestion Question? @relation("QuestionCorrectOption")
+  answers            Answer[]
+
+  @@unique([questionId, displayOrder])
+  @@index([questionId])
+  @@map("mcq_options")
+}
+
+model Test {
+  id              String      @id @default(uuid()) @db.Uuid
+  title           String      @db.VarChar(200)
+  topicId         String?     @map("topic_id") @db.Uuid
+  difficulty      Difficulty?
+  isTimed         Boolean     @default(false) @map("is_timed")
+  durationSeconds Int?        @map("duration_seconds")
+  isPremium       Boolean     @default(false) @map("is_premium")
+  createdById     String?     @map("created_by_id") @db.Uuid
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  topic     Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("TestsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  questions TestQuestion[]
+  attempts  TestAttempt[]
+
+  @@index([topicId])
+  @@index([difficulty])
+  @@index([isPremium])
+  @@map("tests")
+}
+
+model TestQuestion {
+  id           String   @id @default(uuid()) @db.Uuid
+  testId       String   @map("test_id") @db.Uuid
+  questionId   String   @map("question_id") @db.Uuid
+  displayOrder Int      @default(0) @map("display_order")
+  points       Decimal  @default(1) @db.Decimal(8, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  test     Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, questionId])
+  @@unique([testId, displayOrder])
+  @@index([questionId])
+  @@map("test_questions")
+}
+
+model TestAttempt {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  testId      String        @map("test_id") @db.Uuid
+  score       Decimal       @default(0) @db.Decimal(8, 2)
+  status      AttemptStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now()) @map("started_at")
+  completedAt DateTime?     @map("completed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test    Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([userId])
+  @@index([testId])
+  @@index([status])
+  @@map("test_attempts")
+}
+
+model Answer {
+  id               String   @id @default(uuid()) @db.Uuid
+  attemptId        String   @map("attempt_id") @db.Uuid
+  questionId       String   @map("question_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  selectedOptionId String?  @map("selected_option_id") @db.Uuid
+  answerText       String?  @map("answer_text") @db.Text
+  isCorrect        Boolean? @map("is_correct")
+  score            Decimal  @default(0) @db.Decimal(8, 2)
+  feedback         String?  @db.Text
+  submittedAt      DateTime @default(now()) @map("submitted_at")
+
+  attempt        TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedOption McqOption?  @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+  @@index([userId])
+  @@index([questionId])
+  @@map("answers")
+}
+
+model UserProgress {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  topicId            String    @map("topic_id") @db.Uuid
+  questionsAttempted Int       @default(0) @map("questions_attempted")
+  correctAnswers     Int       @default(0) @map("correct_answers")
+  masteryScore       Decimal   @default(0) @map("mastery_score") @db.Decimal(5, 2)
+  lastAttemptAt      DateTime? @map("last_attempt_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([topicId])
+  @@map("user_progress")
+}
+
+model Bookmark {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  questionId String   @map("question_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+  @@index([questionId])
+  @@map("bookmarks")
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum Platform {
+  ANDROID
+  IOS
+  WEB
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  STUDENT
+}
+
+enum AuthMethod {
+  EMAIL_PW
+  EMAIL_OTP
+  PHONE_OTP
   GOOGLE
   APPLE
-  EMAIL
+}
+
+enum QuestionType {
+  MCQ
+  SHORT_ANSWER
+  DESCRIPTIVE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
 }

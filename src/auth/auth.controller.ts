@@ -1,196 +1,266 @@
-import { Controller, Post, Body, Res, HttpStatus, BadRequestException, ForbiddenException, Req, Get, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, UseGuards, Res, HttpStatus, BadRequestException, Query, Param, Put, Delete, UnauthorizedException, Patch } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { Request, Response } from 'express';
-import { loginDto } from './dto/login-auth.dto';
-import { ConfigService } from '@nestjs/config';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { GetUser } from './decorators/get-user.decorator';
-import { JwtGuard } from './guard/jwt.guard';
-import { OtpService } from '@/otp/otp.service';
-import { ApiResponse } from '@/common/dto/response.dto';
-import { Prisma } from '@generated/prisma';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto, refreshDto } from './dto/login.dto';
+import type { Request, Response } from 'express';
+import { UpdateUserDto } from './dto/update_user.dto';
+import { forgotPasswordDto } from './dto/forgot-password.dto';
+import { resetPasswordDto } from './dto/reset-password.dto';
+import { userProfileDto } from './dto/user-profile-update.dto';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { ActivityLogService } from '@/activity_log/activity_log.service';
+import { ApiResponse } from '@/common/helper/response.helper';
+import { GetUser } from '@/common/decorators/get-user.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { Role } from '@/common/enum/role.enum';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private config: ConfigService,
-    private readonly otpService: OtpService
-  ) { }
+    constructor(
+        private authService: AuthService,
+        private readonly activityLogService: ActivityLogService
+    ) { }
 
-  @Post('signup')
-  async create(@Req() req: Request, @Res() res: Response, @Body() dto: CreateAuthDto) {
-    try {
-      const expiresInMs = +(this.config.get('COOKIE_EXPIRATION_TIME'));
-      const expiresAt = new Date(Date.now() + expiresInMs);
-      const userAgent = req.headers['user-agent'] || '';
-      const ip_address = req.ip;
-
-      const payload = {
-        credential: dto.email,
-        otp: dto.otp
-      }
-      const verifyOtp = await this.otpService.verifyOtp(payload);
-      if (verifyOtp) {
-        const result = await this.authService.signup(dto, expiresAt, userAgent, ip_address);
-        const token = result?.access_token || '';
-        res.cookie('token', token, {
-          domain: this.config.get('COOKIE_DOMAIN'),
-          path: '/',
-          httpOnly: true,
-          secure: this.config.get('NODE_ENV') === 'production',
-          maxAge: parseInt(this.config.get('COOKIE_EXPIRATION_TIME')!, 10),
-          // sameSite: 'lax',
-          sameSite: this.config.get('SAME_SITE'),
-        });
-      }
-      return res.status(HttpStatus.CREATED).json(new ApiResponse(null, "Signup successful"));
-    } catch (error: any) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException({
-            success: false,
-            message: `A user with this ${error.meta?.target} already exists.`,
-          });
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Post('register')
+    async register(@Body() dto: RegisterDto, @Res() res: Response, @Req() req: any) {
+        try {
+            const currentUser = req.user;
+            const regiterRes = await this.authService.register(dto, currentUser);
+            let result = JSON.stringify(regiterRes, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User Registered successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
         }
-      }
-
-      console.log('error: ', error);
-      throw new BadRequestException(new ApiResponse(null, error?.message, false));
     }
-  }
 
-  @Post('signin')
-  async signin(@Req() req: Request, @Res() res: Response, @Body() dto: loginDto) {
-    try {
-      const expiresInMs = +(this.config.get('COOKIE_EXPIRATION_TIME'));
-      const expiresAt = new Date(Date.now() + expiresInMs);
-      const userAgent = req.headers['user-agent'] || '';
-      const ip_address = req.ip;
-      const result = await this.authService.signin(dto, expiresAt, userAgent, ip_address);
-      if (result) {
-        const token = result?.access_token || '';
+    @Post('login')
+    async login(@Body() dto: LoginDto, @Res() res: Response, @Req() req: any) {
+        try {
+            //  Verify captcha first
+            // const captcha = await this.authService.verifyRecaptcha(
+            //     dto.recaptchaToken,
+            //     'login',
+            // );
 
-        res.cookie('token', token, {
-          domain: this.config.get('COOKIE_DOMAIN'),
-          path: '/',
-          httpOnly: true,
-          secure: this.config.get('NODE_ENV') === 'production',
-          maxAge: parseInt(this.config.get('COOKIE_EXPIRATION_TIME')!, 10),
-          // sameSite: 'lax',
-          sameSite: this.config.get('SAME_SITE'),
-        });
+            // // Score-based decision
+            // if (captcha.score < 0.5) {
+            //     throw new UnauthorizedException('Suspicious activity detected');
+            // }
 
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "Signin successful"));
-      }
-      else {
-        return res.status(HttpStatus.BAD_REQUEST).json(new ApiResponse(null, "Your account is temporarily suspended."));
-      }
-      // return res.status(HttpStatus.OK).json(new ApiResponse(result, ""));
-    } catch (error: any) {
-      console.log('error: ', error);
 
-      if (error.response?.status === 403) {
-        throw new ForbiddenException({
-          message: error.response?.message,
-          error: 'Forbidden',
-        });
-      } else {
-        throw new BadRequestException(error.response);
-      }
+            const loginres = await this.authService.login(dto, req);
+            let result = JSON.stringify(loginres, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            // await this.activityLogService.createAdminActivityLog('LOGIN',
+            //     `User ${dto.email} logged in.`,
+            //     'Auth', req.ip, req.headers['user-agent'] || '');
+
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User Login successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+        // return this.authService.login(dto);
     }
-  }
 
-  @Post('guest')
-  async createGuest(@Req() req: Request, @Res() res: Response) {
-    try {
-      const expiresInMs = +(this.config.get('COOKIE_EXPIRATION_TIME'));
-      const expiresAt = new Date(Date.now() + expiresInMs);
-      const userAgent = req.headers['user-agent'] || '';
-      const ip_address = req.ip;
+    @Post('refresh')
+    async refreshTokens(@Body() dto: refreshDto, @Res({ passthrough: true }) res: Response) {
+        try {
+            const tokens = await this.authService.refreshTokens(dto);
 
-      const guestUser = await this.authService.createGuestUser(expiresAt, userAgent, ip_address);
-
-      const token = guestUser?.access_token || '';
-      res.cookie('token', token, {
-        domain: this.config.get('COOKIE_DOMAIN'),
-        path: '/',
-        httpOnly: true,
-        secure: this.config.get('NODE_ENV') === 'production',
-        maxAge: parseInt(this.config.get('COOKIE_EXPIRATION_TIME')!, 10),
-        sameSite: this.config.get('SAME_SITE'),
-      });
-
-      return res.status(HttpStatus.CREATED).json(
-        new ApiResponse(null, "Guest user created successfully")
-      );
-    } catch (error: any) {
-      throw new BadRequestException(new ApiResponse(null, error?.message, false));
+            let result = JSON.stringify(tokens, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "Tokens refreshed successfully"));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
     }
-  }
 
-  @UseGuards(JwtGuard)
-  @Post('logout')
-  async logout(@Req() req: Request, @Res() res: Response, @GetUser('id') user_id: bigint) {
-    try {
-      let result = await this.authService.logout(user_id, req.cookies?.token, req, res);
-      if (result) {
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "Logged out from current device"));
-      } else {
-        throw new BadRequestException(new ApiResponse(null, '', false));
-      }
-    } catch (error: any) {
-      console.log('error: ', error);
-      throw new BadRequestException(error.response);
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Get('me')
+    async me(@Res() res: Response, @Req() req: any) {
+        try {
+            const userId = req.user.id;
+            if (!userId) {
+                throw new UnauthorizedException("Unauthorized")
+            }
+            const userData = await this.authService.getCurrentUser(userId);
+            let result = JSON.stringify(userData, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User fetched successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
     }
-  }
 
-  @UseGuards(JwtGuard)
-  @Post('logout-all')
-  async logoutAll(@Req() req: Request, @Res() res: Response, @GetUser('id') user_id: bigint,) {
-    try {
-      let result = await this.authService.logoutAll(user_id, req, res);
-      if (result) {
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "Logged out from all devices"));
-      } else {
-        throw new BadRequestException(new ApiResponse(null, '', false));
-      }
-    } catch (error: any) {
-      console.log('error: ', error);
-      throw new BadRequestException(error.response);
+    @UseGuards(JwtAuthGuard)
+    @Patch('profile')
+    async updateUserProfile(
+        @GetUser('id') userId: string,
+        @Body() dto: userProfileDto, @Req() req: any,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        try {
+            const userData = await this.authService.updateUserProfile(userId, dto);
+            let result = JSON.stringify(userData, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+
+            // await this.activityLogService.createAdminActivityLog('UPDATE',
+            //     `User profile of ${req.user.email} [${req.user.role.name}] updated.`,
+            //     'Profile', req.ip, req.headers['user-agent'] || '');
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User profile updated successfully."));
+
+        } catch (error: any) {
+            throw new BadRequestException(error.response);
+        }
     }
-  }
 
-  @Post('forgot-password')
-  async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request, @Res() res: Response) {
-    try {
-      let result = await this.authService.forgotPassword(dto);
-      if (result) {
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "Password reset request accepted. Email will be sent if the user exists."));
-      } else {
-        throw new BadRequestException(new ApiResponse(null, 'User not found.', false));
-      }
-    } catch (error: any) {
-      console.log('error: ', error);
-      throw new BadRequestException(error.response);
+    @UseGuards(JwtAuthGuard)
+    @Post('logout')
+    async logout(
+        @GetUser('id') userId: string,
+        @GetUser('sid') sid: string, @Req() req: any,
+        @Res({ passthrough: true }) res: Response) {
+        try {
+            const logout = await this.authService.logout(userId, sid);
+            const resData = (
+                new ApiResponse(null, 'Logout successful.')
+            );
+            // await this.activityLogService.createAdminActivityLog('LOGOUT',
+            //     `User ${req.user.email} [${req.user.role.name}] logged out.`,
+            //     'Auth', req.ip, req.headers['user-agent'] || '');
+            return res.status(HttpStatus.OK).json(resData);
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
     }
-  }
 
-  @Post('reset-password')
-  async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request, @Res() res: Response) {
-    try {
-      let result = await this.authService.resetPassword(dto);
-      if (result) {
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "Your password has been reset successfully."));
-      } else {
-        throw new BadRequestException(new ApiResponse(null, 'Invalid or expired token', false));
-      }
-    } catch (error: any) {
-      console.log('error: ', error);
-      throw new BadRequestException(error.response);
+    @UseGuards(JwtAuthGuard)
+    @Post('logout-all')
+    async logoutAll(
+        @GetUser('sub') userId: string, @Req() req: any,
+        @Res({ passthrough: true }) res: Response) {
+        try {
+            const logout = await this.authService.logoutAll(userId);
+            const resData = (
+                new ApiResponse(null, 'Logout successful from all device.')
+            );
+            // await this.activityLogService.createAdminActivityLog('LOGOUT',
+            //     `User ${req.user.email} [${req.user.role.name}] logged out from all devices.`,
+            //     'Auth', req.ip, req.headers['user-agent'] || '');
+            return res.status(HttpStatus.OK).json(resData);
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
     }
-  }
 
+    @Post('forgot-password')
+    async forgotPassword(@Body() dto: forgotPasswordDto, @Req() req: Request, @Res() res: Response) {
+        try {
+            let result = await this.authService.forgotPassword(dto);
+            if (result) {
+                return res.status(HttpStatus.OK).json(new ApiResponse(null, "Password reset request accepted. An email will be sent if the email exists."));
+            } else {
+                throw new BadRequestException(new ApiResponse(null, 'User not found.', false));
+            }
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+    }
+
+    @Post('reset-password')
+    async resetPassword(@Body() dto: resetPasswordDto, @Req() req: Request, @Res() res: Response) {
+        try {
+            let result = await this.authService.resetPassword(dto);
+            if (result) {
+                return res.status(HttpStatus.OK).json(new ApiResponse(null, "Your password has been reset successfully."));
+            } else {
+                throw new BadRequestException(new ApiResponse(null, 'Invalid or expired token', false));
+            }
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+    }
+
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    @Get('user-all')
+    async getAllUsers(@Res() res: Response, @Req() req: any, @Query('page') page: number = 1, @Query('limit') limit: number = 10, @Query('role') role: string = "", @Query('status') status: string = "", @Query('search') search: string = "") {
+        try {
+            const usersRes = await this.authService.getAllUsers(req.user, Number(page), Number(limit), search, role, status);
+            let result = JSON.stringify(usersRes, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User fetched successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    @Get(':id')
+    async getUserByuId(@Res() res: Response, @Req() req: any, @Param("id") userId: string) {
+        try {
+            const usersRes = await this.authService.getUserById(req.user, userId);
+            let result = JSON.stringify(usersRes, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User fetched successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    @Put(':id')
+    async updateUser(@Res() res: Response, @Req() req: any, @Body() dto: UpdateUserDto, @Param("id") userId: string) {
+        try {
+            const usersRes = await this.authService.updateUser(req.user, userId, dto);
+            let result = JSON.stringify(usersRes, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            // await this.activityLogService.createAdminActivityLog('Update', `Update User (${req.user.email}) by ${req.user.email}-Role: ${req.user.role.name}`, 'user', req.ip, req.headers['user-agent'] || '');
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User fetched successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+    }
+
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    @Delete(':id')
+    async deleteUser(@Res() res: Response, @Req() req: any, @Param("id") userId: string) {
+        try {
+            const usersRes = await this.authService.deleteUser(req.user, userId);
+            let result = JSON.stringify(usersRes, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+            );
+            return res.status(HttpStatus.OK).json(new ApiResponse(JSON.parse(result), "User deleted successfully."));
+        } catch (error: any) {
+            console.log('error: ', error);
+            throw new BadRequestException(error.response);
+        }
+    }
 }

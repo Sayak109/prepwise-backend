@@ -1,9 +1,7 @@
-import { IsBoolean, IsEmail } from 'class-validator';
+import { IsNotEmpty, IsString } from "class-validator";
 
-export class ForgotPasswordDto {
-  @IsEmail()
-  email: string;
-
-  @IsBoolean()
-  is_mobile: boolean;
+export class forgotPasswordDto {
+    @IsString()
+    @IsNotEmpty()
+    email: string;
 }
