@@ -51,10 +51,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       ...user,
       name: [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
-      role: {
-        id: user.role,
-        title: user.role,
-      },
+      role: user.role,
       sid: payload.sid,
       sub: user.id,
     };

@@ -1,6 +1,6 @@
+import { CommonDto } from '@/auth/dto/common.dto';
+import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { CommonDto } from 'src/auth/dto/common.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class SettingsService {

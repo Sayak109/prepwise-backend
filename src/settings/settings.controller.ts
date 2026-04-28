@@ -27,7 +27,7 @@ export class SettingsController {
 
       const resData = encryptData(new ApiResponse((JSON.parse(result)), "Razorpay Payment settings"));
       return res.status(HttpStatus.OK).json({ data: resData });
-    } catch (error) {
+    } catch (error: any) {
       throw new BadRequestException(error.response);
     }
   }

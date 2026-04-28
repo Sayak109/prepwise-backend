@@ -612,10 +612,7 @@ export class AuthService {
             {
                 sub: user.id,
                 email: user.email,
-                role: {
-                    id: user.role,
-                    title: user.role,
-                },
+                role: user.role,
                 sid: sessionId,
                 status: user.status,
             },
@@ -718,10 +715,7 @@ export class AuthService {
         return {
             ...user,
             name: [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
-            role: {
-                id: user.role,
-                title: user.role,
-            },
+            role: user.role,
         };
     }
 }
