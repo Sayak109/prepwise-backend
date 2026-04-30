@@ -2,6 +2,8 @@ import { Module, UseGuards } from '@nestjs/common';
 import { RouterModule } from '@nestjs/core';
 import { AdminSettingsModule } from './settings/admin-settings.module';
 import { UserModule } from './user/user.module';
+import { TopicModule } from './topic/topic.module';
+import { QuestionModule } from './question/question.module';
 
 @Module({
     imports: [
@@ -16,6 +18,14 @@ import { UserModule } from './user/user.module';
                     {
                         path: 'settings',
                         module: AdminSettingsModule,
+                    },
+                    {
+                        path: 'topic',
+                        module: TopicModule,
+                    },
+                    {
+                        path: 'question',
+                        module: QuestionModule,
                     }
                 ],
             },
@@ -23,6 +33,8 @@ import { UserModule } from './user/user.module';
         ]),
         UserModule,
         AdminSettingsModule,
+        TopicModule,
+        QuestionModule,
     ],
 })
 export class AdminModule { }

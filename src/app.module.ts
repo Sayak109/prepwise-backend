@@ -5,8 +5,8 @@ import { ActivityLogModule } from './activity_log/activity_log.module';
 import { AuthModule } from './auth/auth.module';
 import { OtpModule } from './otp/otp.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
+import { PracticeModule } from './practice/practice.module';
 
 @Module({
   imports: [
@@ -17,9 +17,9 @@ import { AdminModule } from './admin/admin.module';
     PrismaModule,
     AuthModule,
     OtpModule,
-    SettingsModule,
     ActivityLogModule,
-    AdminModule
+    AdminModule,
+    PracticeModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
