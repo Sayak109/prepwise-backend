@@ -4,37 +4,42 @@ import { AdminSettingsModule } from './settings/admin-settings.module';
 import { UserModule } from './user/user.module';
 import { TopicModule } from './topic/topic.module';
 import { QuestionModule } from './question/question.module';
+import { AdminTestModule } from './test/test.module';
 
 @Module({
-    imports: [
-        RouterModule.register([
-            {
-                path: 'admin',
-                children: [
-                    {
-                        path: 'user',
-                        module: UserModule,
-                    },
-                    {
-                        path: 'settings',
-                        module: AdminSettingsModule,
-                    },
-                    {
-                        path: 'topic',
-                        module: TopicModule,
-                    },
-                    {
-                        path: 'question',
-                        module: QuestionModule,
-                    }
-                ],
-            },
-
-        ]),
-        UserModule,
-        AdminSettingsModule,
-        TopicModule,
-        QuestionModule,
-    ],
+  imports: [
+    RouterModule.register([
+      {
+        path: 'admin',
+        children: [
+          {
+            path: 'user',
+            module: UserModule,
+          },
+          {
+            path: 'settings',
+            module: AdminSettingsModule,
+          },
+          {
+            path: 'topic',
+            module: TopicModule,
+          },
+          {
+            path: 'question',
+            module: QuestionModule,
+          },
+          {
+            path: 'test',
+            module: AdminTestModule,
+          },
+        ],
+      },
+    ]),
+    UserModule,
+    AdminSettingsModule,
+    TopicModule,
+    QuestionModule,
+    AdminTestModule,
+  ],
 })
-export class AdminModule { }
+export class AdminModule {}

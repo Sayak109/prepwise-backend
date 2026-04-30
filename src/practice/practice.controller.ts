@@ -20,7 +20,7 @@ import { PracticeService } from './practice.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STUDENT)
-@Controller({ path: '', version: '1' })
+@Controller({ path: 'practice', version: '1' })
 export class PracticeController {
   constructor(private readonly practiceService: PracticeService) {}
 

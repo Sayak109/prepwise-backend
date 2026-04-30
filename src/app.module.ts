@@ -7,6 +7,7 @@ import { OtpModule } from './otp/otp.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminModule } from './admin/admin.module';
 import { PracticeModule } from './practice/practice.module';
+import { TestModule } from './test/test.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PracticeModule } from './practice/practice.module';
     ActivityLogModule,
     AdminModule,
     PracticeModule,
+    TestModule,
   ],
 })
 export class AppModule {}
