@@ -155,8 +155,9 @@ export class AuthService {
         return user;
     }
 
-    async login(dto: LoginDto, req: Request): Promise<Tokens> {
-        const email = this.normalizeEmail(dto.email);
+    async login(dto: CommonDto, req: Request): Promise<Tokens> {
+        const payload = this.getBody<LoginDto>(dto);
+        const email = this.normalizeEmail(payload.email);
         if (!email || !dto.password) {
             throw new BadRequestException('Email and password are required');
         }
@@ -166,7 +167,7 @@ export class AuthService {
             select: this.authUserSelect(true),
         });
 
-        if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+        if (!user || !(await bcrypt.compare(payload.password, user.passwordHash))) {
             await handleAuthFailure(email, req.ip as string);
             throw new BadRequestException('Invalid credentials');
         }

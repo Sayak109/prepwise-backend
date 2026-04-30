@@ -83,6 +83,7 @@ export class AuthController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
     @Get('me')
     async me(@Res() res: Response, @Req() req: any) {
         try {
