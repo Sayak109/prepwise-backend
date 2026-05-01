@@ -10,29 +10,29 @@ import { ActivityLogModule } from '@/activity_log/activity_log.module';
 // import type { StringValue } from 'jsonwebtoken';
 
 @Module({
-    imports: [
-        MailModule,
-        OtpModule,
-        ActivityLogModule,
-        ConfigModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: (config: ConfigService): JwtModuleOptions => {
-                const expiresIn: any =
-                    (config.get<string>('JWT_EXPIRES_IN') as String) ?? '1d';
+  imports: [
+    MailModule,
+    OtpModule,
+    ActivityLogModule,
+    ConfigModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): JwtModuleOptions => {
+        const expiresIn: any =
+          (config.get<string>('JWT_EXPIRES_IN') as string) ?? '1d';
 
-                return {
-                    secret: config.getOrThrow<string>('JWT_SECRET'),
-                    signOptions: {
-                        expiresIn,
-                    },
-                };
-            },
-        }),
-        // CommonModule
-    ],
-    providers: [AuthService, JwtStrategy,],
-    controllers: [AuthController,],
+        return {
+          secret: config.getOrThrow<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn,
+          },
+        };
+      },
+    }),
+    // CommonModule
+  ],
+  providers: [AuthService, JwtStrategy],
+  controllers: [AuthController],
 })
-export class AuthModule { }
+export class AuthModule {}

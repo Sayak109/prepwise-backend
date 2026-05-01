@@ -3,8 +3,7 @@ import { SendOtpDto } from './send-otp.dto';
 import { IsNotEmpty, IsNumber } from 'class-validator';
 
 export class verifyOtpDto extends PartialType(SendOtpDto) {
-
-    @IsNumber()
-    @IsNotEmpty()
-    otp: number
+  @IsNumber()
+  @IsNotEmpty()
+  otp: number;
 }

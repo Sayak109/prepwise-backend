@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Res, BadRequestException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  Res,
+  BadRequestException,
+  HttpStatus,
+} from '@nestjs/common';
 import { OtpService } from './otp.service';
 import { Request, Response } from 'express';
 import { ApiResponse } from '@/common/dto/response.dto';
@@ -7,16 +19,24 @@ import { verifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller({ path: 'otp', version: '1' })
 export class OtpController {
-  constructor(private readonly otpService: OtpService) { }
+  constructor(private readonly otpService: OtpService) {}
 
   @Post('send')
-  async sendOtp(@Body() dto: SendOtpDto, @Req() req: Request, @Res() res: Response) {
+  async sendOtp(
+    @Body() dto: SendOtpDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
-      let result = await this.otpService.sendOtp(dto);
+      const result = await this.otpService.sendOtp(dto);
       if (result) {
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "OTP sent"));
+        return res
+          .status(HttpStatus.OK)
+          .json(new ApiResponse(null, 'OTP sent'));
       } else {
-        throw new BadRequestException(new ApiResponse(null, 'Invalid Credential.', false));
+        throw new BadRequestException(
+          new ApiResponse(null, 'Invalid Credential.', false),
+        );
       }
     } catch (error: any) {
       console.log('error: ', error);
@@ -25,13 +45,21 @@ export class OtpController {
   }
 
   @Post('verify')
-  async verifyOtp(@Body() dto: verifyOtpDto, @Req() req: Request, @Res() res: Response) {
+  async verifyOtp(
+    @Body() dto: verifyOtpDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
-      let result = await this.otpService.verifyOtp(dto);
+      const result = await this.otpService.verifyOtp(dto);
       if (result) {
-        return res.status(HttpStatus.OK).json(new ApiResponse(null, "OTP verified"));
+        return res
+          .status(HttpStatus.OK)
+          .json(new ApiResponse(null, 'OTP verified'));
       } else {
-        throw new BadRequestException(new ApiResponse(null, 'Invalid Credential.', false));
+        throw new BadRequestException(
+          new ApiResponse(null, 'Invalid Credential.', false),
+        );
       }
     } catch (error: any) {
       console.log('error: ', error);

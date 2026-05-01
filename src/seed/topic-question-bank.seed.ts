@@ -32,6 +32,8 @@ type ExamSeed = {
   questionCount: number;
   durationSeconds: number;
   topicSlugs?: string[];
+  questionType?: QuestionType;
+  questionDifficulty?: Difficulty;
 };
 
 const topics: TopicSeed[] = [
@@ -694,6 +696,16 @@ const extraQuestionsByTopic: Record<
 
 const exams: ExamSeed[] = [
   {
+    title: 'Beginner Aptitude MCQ Warmup',
+    level: 'Beginner',
+    difficulty: Difficulty.EASY,
+    questionCount: 10,
+    durationSeconds: 10 * 60,
+    topicSlugs: ['arithmetic-aptitude', 'reasoning'],
+    questionType: QuestionType.MCQ,
+    questionDifficulty: Difficulty.EASY,
+  },
+  {
     title: 'Intermediate Aptitude Sprint',
     level: 'Intermediate',
     difficulty: Difficulty.MEDIUM,
@@ -1039,7 +1051,7 @@ async function seedExams() {
 
     const test = await prisma.test.create({
       data: {
-        title: `${exam.title} (${exam.level})`,
+        title: exam.title,
         difficulty: exam.difficulty,
         isTimed: true,
         durationSeconds: exam.durationSeconds,
@@ -1074,8 +1086,21 @@ async function getExamQuestions(exam: ExamSeed) {
           topic: {
             slug: { in: exam.topicSlugs },
           },
+          ...(exam.questionType ? { type: exam.questionType } : {}),
+          ...(exam.questionDifficulty
+            ? { difficulty: exam.questionDifficulty }
+            : {}),
         }
-      : {},
+      : exam.questionType
+        ? {
+            type: exam.questionType,
+            ...(exam.questionDifficulty
+              ? { difficulty: exam.questionDifficulty }
+              : {}),
+          }
+        : exam.questionDifficulty
+          ? { difficulty: exam.questionDifficulty }
+        : {},
     orderBy: [{ difficulty: 'desc' }, { createdAt: 'asc' }],
     select: {
       id: true,

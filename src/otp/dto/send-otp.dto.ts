@@ -1,10 +1,10 @@
 import { IsBoolean, IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class SendOtpDto {
-    @IsString()
-    @IsNotEmpty()
-    credential: string;
+  @IsString()
+  @IsNotEmpty()
+  credential: string;
 
-    @IsBoolean()
-    is_email: boolean;
+  @IsBoolean()
+  is_email: boolean;
 }

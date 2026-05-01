@@ -6,9 +6,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class ActivityLogService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   create(createActivityLogDto: CreateActivityLogDto) {
     return 'This action adds a new activityLog';
@@ -94,12 +92,9 @@ export class ActivityLogService {
         },
       };
     } catch (error) {
-      throw new BadRequestException(
-        'Failed to fetch admin activity logs',
-      );
+      throw new BadRequestException('Failed to fetch admin activity logs');
     }
   }
-
 
   findOne(id: number) {
     return `This action returns a #${id} activityLog`;

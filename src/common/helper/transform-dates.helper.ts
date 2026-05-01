@@ -1,20 +1,17 @@
-import { convertUTCToTimezone } from "../utils/timezone.util";
+import { convertUTCToTimezone } from '../utils/timezone.util';
 
 export function transformDates<T>(
-    data: T,
-    timezone: string,
-    fields: (keyof T)[]
+  data: T,
+  timezone: string,
+  fields: (keyof T)[],
 ): T {
-    const result = { ...data };
+  const result = { ...data };
 
-    fields.forEach((field) => {
-        if (result[field] instanceof Date) {
-            result[field] = convertUTCToTimezone(
-                result[field] as unknown as Date,
-                timezone
-            ) as any;
-        }
-    });
+  fields.forEach((field) => {
+    if (result[field] instanceof Date) {
+      result[field] = convertUTCToTimezone(result[field], timezone) as any;
+    }
+  });
 
-    return result;
+  return result;
 }

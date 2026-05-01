@@ -29,18 +29,20 @@ import { CreateEditorDto } from './dto/create-editor.dto';
 @Roles(Role.ADMIN)
 @Controller({ path: '', version: '1' })
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Get()
   async findAll(@Query() query: UserQueryDto, @Res() res: Response) {
     try {
       const users = await this.userService.findAll(query);
-      let result = JSON.stringify(users, (key, value) =>
+      const result = JSON.stringify(users, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
       return res
         .status(HttpStatus.OK)
-        .json(new ApiResponse(JSON.parse(result), 'Users fetched successfully.'));
+        .json(
+          new ApiResponse(JSON.parse(result), 'Users fetched successfully.'),
+        );
     } catch (error: any) {
       console.log('error: ', error);
       throw new BadRequestException(error.response);
@@ -55,12 +57,14 @@ export class UserController {
   ) {
     try {
       const editor = await this.userService.createEditor(dto, currentUser);
-      let result = JSON.stringify(editor, (key, value) =>
+      const result = JSON.stringify(editor, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
       return res
         .status(HttpStatus.CREATED)
-        .json(new ApiResponse(JSON.parse(result), 'Editor created successfully.'));
+        .json(
+          new ApiResponse(JSON.parse(result), 'Editor created successfully.'),
+        );
     } catch (error: any) {
       console.log('error: ', error);
       throw new BadRequestException(error.response);
@@ -75,12 +79,14 @@ export class UserController {
   ) {
     try {
       const editor = await this.userService.updateEditor(editorId, dto);
-      let result = JSON.stringify(editor, (key, value) =>
+      const result = JSON.stringify(editor, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
       return res
         .status(HttpStatus.OK)
-        .json(new ApiResponse(JSON.parse(result), 'Editor updated successfully.'));
+        .json(
+          new ApiResponse(JSON.parse(result), 'Editor updated successfully.'),
+        );
     } catch (error: any) {
       console.log('error: ', error);
       throw new BadRequestException(error.response);
@@ -88,15 +94,23 @@ export class UserController {
   }
 
   @Get(':id/permissions')
-  async getEditorPermissions(@Param('id') editorId: string, @Res() res: Response) {
+  async getEditorPermissions(
+    @Param('id') editorId: string,
+    @Res() res: Response,
+  ) {
     try {
       const permissions = await this.userService.getEditorPermissions(editorId);
-      let result = JSON.stringify(permissions, (key, value) =>
+      const result = JSON.stringify(permissions, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
       return res
         .status(HttpStatus.OK)
-        .json(new ApiResponse(JSON.parse(result), 'Editor permissions fetched successfully.'));
+        .json(
+          new ApiResponse(
+            JSON.parse(result),
+            'Editor permissions fetched successfully.',
+          ),
+        );
     } catch (error: any) {
       console.log('error: ', error);
       throw new BadRequestException(error.response);
@@ -116,12 +130,17 @@ export class UserController {
         dto,
         currentUser,
       );
-      let result = JSON.stringify(permissions, (key, value) =>
+      const result = JSON.stringify(permissions, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
       return res
         .status(HttpStatus.OK)
-        .json(new ApiResponse(JSON.parse(result), 'Editor permissions updated successfully.'));
+        .json(
+          new ApiResponse(
+            JSON.parse(result),
+            'Editor permissions updated successfully.',
+          ),
+        );
     } catch (error: any) {
       console.log('error: ', error);
       throw new BadRequestException(error.response);

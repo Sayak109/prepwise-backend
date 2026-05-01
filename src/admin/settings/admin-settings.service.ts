@@ -5,27 +5,25 @@ import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class AdminSettingsService {
-  constructor(
-    private prisma: PrismaService,
-  ) { }
+  constructor(private prisma: PrismaService) {}
   async create(createAdminSettingDto: CommonDto) {
-    const decryptedPayload = decryptData(createAdminSettingDto?.data)
+    const decryptedPayload = decryptData(createAdminSettingDto?.data);
     try {
       const find = await this.prisma.adminSettings.count({
         where: {
           title: decryptedPayload.title,
-        }
-      })
+        },
+      });
       if (find) {
-        throw new BadRequestException("Duplicate setting title.")
+        throw new BadRequestException('Duplicate setting title.');
       }
       const setting = await this.prisma.adminSettings.create({
         data: {
           title: decryptedPayload.title,
-          metadata: decryptedPayload.metadata
-        }
-      })
-      return setting
+          metadata: decryptedPayload.metadata,
+        },
+      });
+      return setting;
     } catch (error) {
       throw error;
     }
@@ -33,9 +31,7 @@ export class AdminSettingsService {
 
   async findAll(setting?: string) {
     try {
-      const whereClause = setting
-        ? { title: setting }
-        : {};
+      const whereClause = setting ? { title: setting } : {};
 
       const settings = await this.prisma.adminSettings.findMany({
         where: whereClause,
@@ -59,18 +55,18 @@ export class AdminSettingsService {
   }
 
   async update(setting_id: string, updateAdminSettingDto: CommonDto) {
-    const decryptedPayload = decryptData(updateAdminSettingDto?.data)
+    const decryptedPayload = decryptData(updateAdminSettingDto?.data);
     try {
       const setting = await this.prisma.adminSettings.update({
         where: {
-          id: setting_id
+          id: setting_id,
         },
         data: {
           title: decryptedPayload.title,
-          metadata: decryptedPayload.metadata
-        }
-      })
-      return setting
+          metadata: decryptedPayload.metadata,
+        },
+      });
+      return setting;
     } catch (error) {
       throw error;
     }

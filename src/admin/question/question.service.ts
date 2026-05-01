@@ -23,14 +23,23 @@ export class QuestionService {
           questionText: dto.questionText,
           difficulty: dto.difficulty,
           explanation: dto.explanation,
-          correctAnswer: dto.type === QuestionType.SHORT_ANSWER ? dto.correctAnswer : undefined,
+          correctAnswer:
+            dto.type === QuestionType.SHORT_ANSWER
+              ? dto.correctAnswer
+              : undefined,
           caseInsensitiveMatch:
-            dto.type === QuestionType.SHORT_ANSWER ? dto.caseInsensitiveMatch ?? true : undefined,
+            dto.type === QuestionType.SHORT_ANSWER
+              ? (dto.caseInsensitiveMatch ?? true)
+              : undefined,
           numericTolerance:
-            dto.type === QuestionType.SHORT_ANSWER && dto.numericTolerance !== undefined
+            dto.type === QuestionType.SHORT_ANSWER &&
+            dto.numericTolerance !== undefined
               ? new Prisma.Decimal(dto.numericTolerance)
               : undefined,
-          sampleAnswer: dto.type === QuestionType.DESCRIPTIVE ? dto.sampleAnswer : undefined,
+          sampleAnswer:
+            dto.type === QuestionType.DESCRIPTIVE
+              ? dto.sampleAnswer
+              : undefined,
           isPremium: dto.isPremium ?? false,
         },
         select: { id: true },
@@ -55,7 +64,8 @@ export class QuestionService {
     if (query.topicId) where.topicId = query.topicId;
     if (query.type) where.type = query.type;
     if (query.difficulty) where.difficulty = query.difficulty;
-    if (query.isPremium !== undefined) where.isPremium = query.isPremium === 'true';
+    if (query.isPremium !== undefined)
+      where.isPremium = query.isPremium === 'true';
     if (query.search) {
       where.OR = [
         { questionText: { contains: query.search, mode: 'insensitive' } },
@@ -123,7 +133,11 @@ export class QuestionService {
           explanation: dto.explanation,
           correctOptionId: nextType === QuestionType.MCQ ? undefined : null,
           correctAnswer:
-            nextType === QuestionType.SHORT_ANSWER ? dto.correctAnswer : dto.type ? null : undefined,
+            nextType === QuestionType.SHORT_ANSWER
+              ? dto.correctAnswer
+              : dto.type
+                ? null
+                : undefined,
           caseInsensitiveMatch:
             nextType === QuestionType.SHORT_ANSWER
               ? dto.caseInsensitiveMatch
@@ -131,13 +145,18 @@ export class QuestionService {
                 ? null
                 : undefined,
           numericTolerance:
-            nextType === QuestionType.SHORT_ANSWER && dto.numericTolerance !== undefined
+            nextType === QuestionType.SHORT_ANSWER &&
+            dto.numericTolerance !== undefined
               ? new Prisma.Decimal(dto.numericTolerance)
               : dto.type
                 ? null
                 : undefined,
           sampleAnswer:
-            nextType === QuestionType.DESCRIPTIVE ? dto.sampleAnswer : dto.type ? null : undefined,
+            nextType === QuestionType.DESCRIPTIVE
+              ? dto.sampleAnswer
+              : dto.type
+                ? null
+                : undefined,
           isPremium: dto.isPremium,
         },
       });
@@ -176,7 +195,9 @@ export class QuestionService {
     }
 
     if (dto.options?.length) {
-      throw new BadRequestException('Options are allowed only for MCQ questions.');
+      throw new BadRequestException(
+        'Options are allowed only for MCQ questions.',
+      );
     }
 
     if (
@@ -184,23 +205,33 @@ export class QuestionService {
       type === QuestionType.SHORT_ANSWER &&
       !dto.correctAnswer?.trim()
     ) {
-      throw new BadRequestException('Correct answer is required for short answer questions.');
+      throw new BadRequestException(
+        'Correct answer is required for short answer questions.',
+      );
     }
   }
 
   private validateOptions(options: QuestionOptionDto[]) {
     if (options.length < 2) {
-      throw new BadRequestException('MCQ questions require at least two options.');
+      throw new BadRequestException(
+        'MCQ questions require at least two options.',
+      );
     }
 
     const correctOptions = options.filter((option) => option.isCorrect);
     if (correctOptions.length !== 1) {
-      throw new BadRequestException('MCQ questions require exactly one correct option.');
+      throw new BadRequestException(
+        'MCQ questions require exactly one correct option.',
+      );
     }
 
-    const displayOrders = options.map((option, index) => option.displayOrder ?? index);
+    const displayOrders = options.map(
+      (option, index) => option.displayOrder ?? index,
+    );
     if (new Set(displayOrders).size !== displayOrders.length) {
-      throw new BadRequestException('Duplicate option display orders are not allowed.');
+      throw new BadRequestException(
+        'Duplicate option display orders are not allowed.',
+      );
     }
   }
 

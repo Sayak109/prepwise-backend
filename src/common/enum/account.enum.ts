@@ -1,16 +1,16 @@
 export enum Account {
-    ACTIVE = 'ACTIVE',
-    INACTIVE = 'INACTIVE',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
 }
 
 export enum Approve {
-    PENDING = "PENDING",
-    APPROVED = "APPROVED",
-    REJECTED = "REJECTED"
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }
 
 export enum Onboarding {
-    INCOMPLETED = "INCOMPLETED",
-    ONGOING = "ONGOING",
-    COMPLETED = "COMPLETED"
+  INCOMPLETED = 'INCOMPLETED',
+  ONGOING = 'ONGOING',
+  COMPLETED = 'COMPLETED',
 }

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { Role } from '@/common/enum/role.enum';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -25,6 +26,7 @@ export class PracticeController {
   constructor(private readonly practiceService: PracticeService) {}
 
   @Get('topics')
+  @Public()
   async findTopics(
     @Query() query: PracticeTopicQueryDto,
     @Res() res: Response,

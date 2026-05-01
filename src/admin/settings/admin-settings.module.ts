@@ -6,4 +6,4 @@ import { AdminSettingsController } from './admin-settings.controller';
   controllers: [AdminSettingsController],
   providers: [AdminSettingsService],
 })
-export class AdminSettingsModule { }
+export class AdminSettingsModule {}

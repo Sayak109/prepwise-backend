@@ -57,10 +57,7 @@ export class UserService {
 
     const exists = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email },
-          ...(phoneNo ? [{ phoneNo }] : []),
-        ],
+        OR: [{ email }, ...(phoneNo ? [{ phoneNo }] : [])],
       },
       select: { id: true, email: true, phoneNo: true },
     });
@@ -87,7 +84,11 @@ export class UserService {
     });
 
     if (dto.permissions?.length) {
-      await this.setEditorTopicPermissions(editor.id, dto.permissions, currentUser?.id);
+      await this.setEditorTopicPermissions(
+        editor.id,
+        dto.permissions,
+        currentUser?.id,
+      );
       return this.getEditorById(editor.id);
     }
 
@@ -127,7 +128,9 @@ export class UserService {
         email,
         phoneNo,
         status: dto.status,
-        passwordHash: dto.password ? await hashPassword(dto.password) : undefined,
+        passwordHash: dto.password
+          ? await hashPassword(dto.password)
+          : undefined,
       },
       select: this.editorSelect(),
     });
@@ -154,7 +157,11 @@ export class UserService {
     dto: UpdateEditorPermissionsDto,
     currentUser: any,
   ) {
-    await this.setEditorTopicPermissions(editorId, dto.permissions, currentUser?.id);
+    await this.setEditorTopicPermissions(
+      editorId,
+      dto.permissions,
+      currentUser?.id,
+    );
     return this.getEditorPermissions(editorId);
   }
 
@@ -236,7 +243,9 @@ export class UserService {
   private ensureUniqueTopics(permissions: EditorTopicPermissionDto[]) {
     const topicIds = permissions.map((permission) => permission.topicId);
     if (new Set(topicIds).size !== topicIds.length) {
-      throw new BadRequestException('Duplicate topic permissions are not allowed.');
+      throw new BadRequestException(
+        'Duplicate topic permissions are not allowed.',
+      );
     }
   }
 

@@ -24,8 +24,16 @@ export class TestService {
     if (query.difficulty) where.difficulty = query.difficulty;
     if (query.isPremium !== undefined)
       where.isPremium = query.isPremium === 'true';
-    if (query.search)
-      where.title = { contains: query.search, mode: 'insensitive' };
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        {
+          topic: {
+            title: { contains: query.search, mode: 'insensitive' },
+          },
+        },
+      ];
+    }
 
     const [tests, total] = await this.prisma.$transaction([
       this.prisma.test.findMany({

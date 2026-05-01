@@ -37,7 +37,8 @@ export class TopicService {
 
     const where: Prisma.TopicWhereInput = {};
     if (query.parentId) where.parentId = query.parentId;
-    if (query.isPremium !== undefined) where.isPremium = query.isPremium === 'true';
+    if (query.isPremium !== undefined)
+      where.isPremium = query.isPremium === 'true';
     if (query.search) {
       where.OR = [
         { title: { contains: query.search, mode: 'insensitive' } },
@@ -82,7 +83,9 @@ export class TopicService {
       await this.findTopicOrThrow(dto.parentId);
     }
 
-    const slug = dto.slug ? await this.buildUniqueSlug(dto.slug, id) : undefined;
+    const slug = dto.slug
+      ? await this.buildUniqueSlug(dto.slug, id)
+      : undefined;
 
     return this.prisma.topic.update({
       where: { id },

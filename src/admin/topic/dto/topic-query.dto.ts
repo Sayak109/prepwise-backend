@@ -1,4 +1,10 @@
-import { IsBooleanString, IsNumberString, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBooleanString,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class TopicQueryDto {
   @IsNumberString()

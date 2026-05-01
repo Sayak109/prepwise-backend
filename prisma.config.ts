@@ -9,6 +9,6 @@ process.env.DATABASE_URL = process.env.DATABASE_URL?.replace(
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
-    seed: 'ts-node src/seed.ts',
+    seed: 'ts-node src/seed/topic-question-bank.seed.ts',
   },
 });

@@ -1,4 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, HttpStatus, BadRequestException, UseGuards, Req, Put, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Res,
+  HttpStatus,
+  BadRequestException,
+  UseGuards,
+  Req,
+  Put,
+  Query,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ApiResponse } from '@/common/helper/response.helper';
 import { AdminSettingsService } from './admin-settings.service';
@@ -13,10 +28,7 @@ import { CommonDto } from '@/auth/dto/common.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class AdminSettingsController {
-
-  constructor(
-    private readonly adminSettingsService: AdminSettingsService,
-  ) { }
+  constructor(private readonly adminSettingsService: AdminSettingsService) {}
 
   @Post()
   async create(
@@ -25,40 +37,42 @@ export class AdminSettingsController {
     @Req() req: Request,
   ) {
     try {
-      const settings = await this.adminSettingsService.create(createAdminSettingDto);
-      let result = JSON.stringify(settings, (key, value) =>
+      const settings = await this.adminSettingsService.create(
+        createAdminSettingDto,
+      );
+      const result = JSON.stringify(settings, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
 
-      const resData = encryptData(new ApiResponse((JSON.parse(result)), "Settings created successfully."));
+      const resData = encryptData(
+        new ApiResponse(JSON.parse(result), 'Settings created successfully.'),
+      );
       return res.status(HttpStatus.OK).json({ data: resData });
     } catch (error: any) {
       if (error.status && error.response) {
         return res.status(error.status).json(error.response);
       }
-      throw new BadRequestException("Failed to create admin settings.");
+      throw new BadRequestException('Failed to create admin settings.');
     }
   }
 
   @Get()
-  async findAll(
-    @Res() res: Response,
-    @Query('setting') setting?: string,
-  ) {
+  async findAll(@Res() res: Response, @Query('setting') setting?: string) {
     try {
       const settings = await this.adminSettingsService.findAll(setting);
       const result = JSON.stringify(settings, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
 
-      const resData = encryptData(new ApiResponse(JSON.parse(result), "Settings."));
+      const resData = encryptData(
+        new ApiResponse(JSON.parse(result), 'Settings.'),
+      );
       return res.status(HttpStatus.OK).json({ data: resData });
-
     } catch (error: any) {
       if (error.status && error.response) {
         return res.status(error.status).json(error.response);
       }
-      throw new BadRequestException("Failed to read admin settings.");
+      throw new BadRequestException('Failed to read admin settings.');
     }
   }
 
@@ -66,7 +80,6 @@ export class AdminSettingsController {
   findOne(@Param('id') id: string) {
     return this.adminSettingsService.findOne(+id);
   }
-
 
   @Patch(':id')
   async update(
@@ -76,18 +89,23 @@ export class AdminSettingsController {
     @Res() res: Response,
   ) {
     try {
-      const settings = await this.adminSettingsService.update(id, updateAdminSettingDto);
-      let result = JSON.stringify(settings, (key, value) =>
+      const settings = await this.adminSettingsService.update(
+        id,
+        updateAdminSettingDto,
+      );
+      const result = JSON.stringify(settings, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,
       );
 
-      const resData = encryptData(new ApiResponse((JSON.parse(result)), "Settings updated successfully."));
+      const resData = encryptData(
+        new ApiResponse(JSON.parse(result), 'Settings updated successfully.'),
+      );
       return res.status(HttpStatus.OK).json({ data: resData });
     } catch (error: any) {
       if (error.status && error.response) {
         return res.status(error.status).json(error.response);
       }
-      throw new BadRequestException("Failed to update admin settings.");
+      throw new BadRequestException('Failed to update admin settings.');
     }
   }
 

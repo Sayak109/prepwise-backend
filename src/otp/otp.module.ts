@@ -9,4 +9,4 @@ import { MailModule } from '@/mail/mail.module';
   providers: [OtpService],
   exports: [OtpService],
 })
-export class OtpModule { }
+export class OtpModule {}
