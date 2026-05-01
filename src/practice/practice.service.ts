@@ -151,6 +151,9 @@ export class PracticeService {
       topicId: true,
       type: true,
       questionText: true,
+      explanation: true,
+      correctAnswer: true,
+      sampleAnswer: true,
       difficulty: true,
       isPremium: true,
       createdAt: true,
@@ -176,6 +179,11 @@ export class PracticeService {
         description: true,
         parentId: true,
         isPremium: true,
+        _count: {
+          select: {
+            questions: true,
+          },
+        },
       },
     });
 
