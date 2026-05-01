@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '@/prisma/prisma.service';
 import { FlagTestQuestionDto } from './dto/flag-test-question.dto';
 import { SaveTestAnswerDto } from './dto/save-test-answer.dto';
+import { SubmitTestDto } from './dto/submit-test.dto';
 import { StudentTestQueryDto } from './dto/test-query.dto';
 
 @Injectable()
@@ -283,8 +284,102 @@ export class TestService {
     return this.getAttempt(attemptId, currentUser);
   }
 
-  async complete(attemptId: string, currentUser: any) {
+  async complete(attemptId: string, currentUser: any, dto?: SubmitTestDto) {
     const attempt = await this.ensureAttemptForUser(attemptId, currentUser.id);
+
+    if (dto?.answers?.length) {
+      await this.prisma.$transaction(async (tx) => {
+        for (const item of dto.answers) {
+          const testQuestion = await tx.testQuestion.findFirst({
+            where: { testId: attempt.testId, questionId: item.questionId },
+            select: {
+              questionId: true,
+              points: true,
+              question: {
+                select: {
+                  id: true,
+                  type: true,
+                  correctOptionId: true,
+                  correctAnswer: true,
+                  caseInsensitiveMatch: true,
+                  numericTolerance: true,
+                  options: { select: { id: true } },
+                },
+              },
+            },
+          });
+          if (!testQuestion) continue;
+
+          const evaluation = await this.evaluateAnswer(testQuestion, {
+            selectedOptionId: item.selectedOptionId,
+            answerText: item.answerText,
+          } as SaveTestAnswerDto);
+
+          await tx.answer.upsert({
+            where: {
+              attemptId_questionId: { attemptId, questionId: item.questionId },
+            },
+            create: {
+              attemptId,
+              questionId: item.questionId,
+              userId: currentUser.id,
+              selectedOptionId: evaluation.selectedOptionId,
+              answerText: evaluation.answerText,
+              isCorrect: evaluation.isCorrect,
+              score: evaluation.score,
+            },
+            update: {
+              selectedOptionId: evaluation.selectedOptionId,
+              answerText: evaluation.answerText,
+              isCorrect: evaluation.isCorrect,
+              score: evaluation.score,
+              submittedAt: new Date(),
+            },
+          });
+
+          const currentState = await tx.testAttemptQuestionState.findUnique({
+            where: {
+              attemptId_questionId: { attemptId, questionId: item.questionId },
+            },
+            select: { status: true },
+          });
+          const nextStatus =
+            currentState?.status === TestQuestionStatus.FLAGGED
+              ? TestQuestionStatus.FLAGGED
+              : TestQuestionStatus.ANSWERED;
+
+          await tx.testAttemptQuestionState.upsert({
+            where: {
+              attemptId_questionId: { attemptId, questionId: item.questionId },
+            },
+            create: {
+              attemptId,
+              questionId: item.questionId,
+              userId: currentUser.id,
+              status: nextStatus,
+              visitedAt: new Date(),
+              answeredAt: new Date(),
+            },
+            update: {
+              status: nextStatus,
+              visitedAt: new Date(),
+              answeredAt: new Date(),
+            },
+          });
+        }
+
+        const answers = await tx.answer.findMany({
+          where: { attemptId },
+          select: { score: true },
+        });
+        const score = answers.reduce(
+          (total, answer) => total.plus(answer.score),
+          new Prisma.Decimal(0),
+        );
+        await tx.testAttempt.update({ where: { id: attemptId }, data: { score } });
+      });
+    }
+
     await this.completeAttempt(attempt.id);
     return this.getAttempt(attempt.id, currentUser);
   }
@@ -514,6 +609,10 @@ export class TestService {
           topicId: testQuestion.question.topicId,
           type: testQuestion.question.type,
           questionText: testQuestion.question.questionText,
+          explanation: testQuestion.question.explanation,
+          correctOptionId: testQuestion.question.correctOptionId,
+          correctAnswer: testQuestion.question.correctAnswer,
+          sampleAnswer: testQuestion.question.sampleAnswer,
           difficulty: testQuestion.question.difficulty,
           isPremium: testQuestion.question.isPremium,
           displayOrder: testQuestion.displayOrder,
@@ -642,6 +741,12 @@ export class TestService {
       topicId: true,
       type: true,
       questionText: true,
+      explanation: true,
+      correctOptionId: true,
+      correctAnswer: true,
+      sampleAnswer: true,
+      caseInsensitiveMatch: true,
+      numericTolerance: true,
       difficulty: true,
       isPremium: true,
       options: {

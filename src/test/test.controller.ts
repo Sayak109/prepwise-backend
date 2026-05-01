@@ -20,6 +20,7 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { ApiResponse } from '@/common/helper/response.helper';
 import { FlagTestQuestionDto } from './dto/flag-test-question.dto';
 import { SaveTestAnswerDto } from './dto/save-test-answer.dto';
+import { SubmitTestDto } from './dto/submit-test.dto';
 import { StudentTestQueryDto } from './dto/test-query.dto';
 import { TestService } from './test.service';
 
@@ -155,11 +156,12 @@ export class TestController {
   @Post('attempts/:attemptId/complete')
   async complete(
     @Param('attemptId') attemptId: string,
+    @Body() dto: SubmitTestDto,
     @GetUser() currentUser: any,
     @Res() res: Response,
   ) {
     try {
-      const attempt = await this.testService.complete(attemptId, currentUser);
+      const attempt = await this.testService.complete(attemptId, currentUser, dto);
       return res
         .status(HttpStatus.OK)
         .json(new ApiResponse(attempt, 'Test completed successfully.'));

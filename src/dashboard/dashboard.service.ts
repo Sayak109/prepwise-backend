@@ -51,25 +51,7 @@ export class DashboardService {
   }
 
   private async getScoreSummary(userId: string) {
-    const attempts = await this.prisma.testAttempt.findMany({
-      where: {
-        userId,
-        status: AttemptStatus.COMPLETED,
-      },
-      select: {
-        id: true,
-        score: true,
-        test: {
-          select: {
-            questions: {
-              select: {
-                points: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const attempts = await this.getLatestCompletedAttemptsByTest(userId);
 
     return attempts.reduce(
       (summary, attempt) => {
@@ -98,40 +80,9 @@ export class DashboardService {
     const page = Math.max(Number(query.page ?? 1), 1);
     const limit = Math.min(Math.max(Number(query.limit ?? 5), 1), 50);
     const skip = (page - 1) * limit;
-
-    const where = {
-      userId,
-      status: AttemptStatus.COMPLETED,
-    };
-
-    const [attempts, total] = await this.prisma.$transaction([
-      this.prisma.testAttempt.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: [{ completedAt: 'desc' }, { startedAt: 'desc' }],
-        select: {
-          id: true,
-          testId: true,
-          score: true,
-          status: true,
-          startedAt: true,
-          completedAt: true,
-          test: {
-            select: {
-              id: true,
-              title: true,
-              questions: {
-                select: {
-                  points: true,
-                },
-              },
-            },
-          },
-        },
-      }),
-      this.prisma.testAttempt.count({ where }),
-    ]);
+    const allUniqueAttempts = await this.getLatestCompletedAttemptsByTest(userId);
+    const total = allUniqueAttempts.length;
+    const attempts = allUniqueAttempts.slice(skip, skip + limit);
 
     return {
       attempts: attempts.map((attempt) => {
@@ -164,6 +115,45 @@ export class DashboardService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  private async getLatestCompletedAttemptsByTest(userId: string) {
+    const attempts = await this.prisma.testAttempt.findMany({
+      where: {
+        userId,
+        status: AttemptStatus.COMPLETED,
+      },
+      orderBy: [{ completedAt: 'desc' }, { startedAt: 'desc' }],
+      select: {
+        id: true,
+        testId: true,
+        score: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        test: {
+          select: {
+            id: true,
+            title: true,
+            questions: {
+              select: {
+                points: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const seenTests = new Set<string>();
+    const uniqueAttempts: typeof attempts = [];
+    for (const attempt of attempts) {
+      if (seenTests.has(attempt.testId)) continue;
+      seenTests.add(attempt.testId);
+      uniqueAttempts.push(attempt);
+    }
+
+    return uniqueAttempts;
   }
 
   private async getStudyStreak(userId: string) {

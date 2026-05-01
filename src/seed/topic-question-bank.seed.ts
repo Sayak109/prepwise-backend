@@ -72,19 +72,19 @@ const topics: TopicSeed[] = [
       ),
       mcq(
         'Simple interest on Rs. 2000 at 5% per annum for 3 years is:',
-        ['Rs. 200', 'Rs. 250', 'Rs. 300', 'Rs. 350'],
-        2,
+        ['Rs. 200', 'Rs. 300', 'Rs. 250', 'Rs. 350'],
+        1,
       ),
       mcq(
         'What is the value of 7/8 as a percentage?',
-        ['75%', '82.5%', '87.5%', '90%'],
-        2,
+        ['87.5%', '75%', '82.5%', '90%'],
+        0,
       ),
       mcq('If x + 25 = 60, then x is:', ['25', '30', '35', '40'], 2),
       mcq(
         'The least common multiple of 12 and 18 is:',
-        ['24', '30', '36', '72'],
-        2,
+        ['24', '30', '72', '36',],
+        3,
       ),
       mcq(
         'A man spends 60% of his salary and saves Rs. 8000. His salary is:',
@@ -109,8 +109,8 @@ const topics: TopicSeed[] = [
       ),
       mcq(
         'The compound interest on Rs. 1000 at 10% for 2 years is:',
-        ['Rs. 100', 'Rs. 200', 'Rs. 210', 'Rs. 220'],
-        2,
+        ['Rs. 100', 'Rs. 200', 'Rs. 220','Rs. 210' ],
+        3,
       ),
       mcq(
         'If a car covers 150 km in 2.5 hours, its speed is:',

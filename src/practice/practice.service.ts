@@ -152,12 +152,19 @@ export class PracticeService {
       type: true,
       questionText: true,
       explanation: true,
+      correctOptionId: true,
       correctAnswer: true,
       sampleAnswer: true,
       difficulty: true,
       isPremium: true,
       createdAt: true,
       updatedAt: true,
+      correctOption: {
+        select: {
+          id: true,
+          optionText: true,
+        },
+      },
       options: {
         orderBy: { displayOrder: 'asc' as const },
         select: {
